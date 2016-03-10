@@ -14,7 +14,7 @@ ui <- fluidPage(
                mixing proportion as well as the means and SDs for each 
                latent class after each iterations. The colored solid lines 
                represent the normal curve for each class, and the dashed black
-               line represents the kernel density estimates."), 
+               line represents the combined density."), 
              p("Try running the EM alogrithm multiple times, and you will
                find that sometimes the algorithm will converge to different
                solutions!")
@@ -38,6 +38,8 @@ ui <- fluidPage(
                   tabPanel("waiting"), 
                   tabPanel("CO2")), 
       plotOutput("plot"),
+      textOutput("loglik"),
+      br(), 
       tableOutput("table")
     )
   )
@@ -50,7 +52,7 @@ server <- function(input, output) {
                 sapply(x, dnorm, mean = mu, sd = sigma))
   }
   v <- reactiveValues(lambda0 = NULL, mu0 = NULL, sigma0 = NULL, 
-                       initialized = FALSE)
+                       initialized = FALSE, loglik = NA)
   observeEvent(input$iter, {
     v$initialized <- TRUE
   })
@@ -87,10 +89,14 @@ server <- function(input, output) {
       v$lambda0 <- mixmdl$lambda
       v$mu0 <- mixmdl$mu
       v$sigma0 <- mixmdl$sigma
+      v$loglik <- mixmdl$loglik
       plot(mixmdl, which = 2, breaks = 10)
       curve(dnormmix(x, mixmdl$lambda, mixmdl$mu, mixmdl$sigma), 
             from = min(y), to = max(y), add = TRUE, lwd = 2, lty = 2)
     })
+  })
+  output$loglik <- renderText({
+    paste("log-likelihood:", v$loglik)
   })
   output$table <- renderTable({
     out_table <- rbind(v$lambda0, v$mu0, v$sigma0)
